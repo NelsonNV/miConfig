@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Definir la URL de la página de descargas de Nerdfonts
+# Definir la URL de la página de descargas de NerdFonts
 URL="https://www.nerdfonts.com/font-downloads"
 
 # Directorio de instalación
@@ -13,7 +13,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # Sin color
 
-# Iconos para la terminal (puedes usar cualquier otro símbolo o emoji)
+# Iconos para la terminal
 DOWNLOAD_ICON="📥"
 UNZIP_ICON="📦"
 DELETE_ICON="🗑️"
@@ -25,45 +25,72 @@ ERROR_ICON="❌"
 mkdir -p "$FONT_DIR"
 
 # Obtener el contenido HTML de la página de descarga
-echo -e "${CYAN}$INFO_ICON Descargando la lista de fuentes de Nerdfonts...${NC}"
+echo -e "${CYAN}$INFO_ICON Descargando la lista de fuentes de NerdFonts...${NC}"
 html_content=$(curl -s "$URL")
 
-# Extraer los enlaces .zip de la página
-zip_urls=$(echo "$html_content" | grep -oP 'href="([^"]+\.zip)"' | cut -d'"' -f2)
+# Extraer los enlaces .zip de la página y eliminar duplicados
+zip_urls=$(echo "$html_content" | grep -oP 'href="([^"]+\.zip)"' | cut -d'"' -f2 | sort -u)
 
-# Contar cuántas fuentes vamos a descargar
+# Contar cuántas fuentes hay en total
 total_fonts=$(echo "$zip_urls" | wc -w)
-echo -e "${YELLOW}🔢 Se van a descargar $total_fonts fuentes NerdFonts.${NC}"
+echo -e "${YELLOW}🔢 Total de fuentes en NerdFonts: $total_fonts.${NC}"
 
-# Descargar y descomprimir cada archivo .zip
+# Contadores
+processed_fonts=0
+font_counter=0
+skipped_counter=0
+
+# Descargar y descomprimir cada archivo .zip en su propia carpeta
 echo -e "${CYAN}$INFO_ICON Iniciando descarga y descompresión de fuentes...${NC}"
 
-font_counter=0
 for url in $zip_urls; do
-    # Obtener el nombre del archivo .zip
-    zip_file=$(basename "$url")
-    
-    # Descargar el archivo .zip
-    echo -e "${GREEN}$DOWNLOAD_ICON Descargando $zip_file...${NC}"
-    wget -q "$url" -O "$zip_file"
+  # Obtener el nombre de la fuente desde la URL (sin extensión)
+  zip_file=$(basename "$url")
+  font_name="${zip_file%.zip}"
 
-    # Descomprimir el archivo directamente en ~/.fonts (sobrescribiendo lo que sea necesario)
-    echo -e "${CYAN}$UNZIP_ICON Descomprimiendo $zip_file...${NC}"
-    unzip -o -q "$zip_file" -d "$FONT_DIR"
+  # Directorio específico para la fuente
+  font_path="$FONT_DIR/$font_name"
 
-    # Eliminar el archivo zip después de descomprimir
-    rm "$zip_file"
-    echo -e "${RED}$DELETE_ICON Archivo $zip_file eliminado.${NC}"
+  # Incrementar el contador de fuentes procesadas
+  ((processed_fonts++))
 
-    # Contar las fuentes descomprimidas
-    font_counter=$((font_counter + 1))
-    echo -e "${YELLOW}📊 Fuentes descargadas y descomprimidas: $font_counter/$total_fonts${NC}"
+  # Si la fuente ya está instalada, omitirla
+  if [[ -d "$font_path" ]]; then
+    echo -e "${GREEN}$CHECK_ICON $font_name ya está instalado. Omitiendo.${NC}"
+    ((skipped_counter++))
+    echo -e "${YELLOW}📊 Progreso: $processed_fonts / $total_fonts${NC}"
+    continue
+  fi
+
+  mkdir -p "$font_path"
+
+  # Descargar el archivo .zip
+  echo -e "${GREEN}$DOWNLOAD_ICON Descargando $font_name...${NC}"
+  wget -q "$url" -O "$zip_file"
+
+  # Descomprimir en su directorio correspondiente
+  echo -e "${CYAN}$UNZIP_ICON Descomprimiendo en $font_path...${NC}"
+  unzip -o -q "$zip_file" -d "$font_path"
+
+  # Eliminar el archivo zip después de descomprimir
+  rm "$zip_file"
+  echo -e "${RED}$DELETE_ICON Archivo $zip_file eliminado.${NC}"
+
+  # Incrementar el contador de fuentes nuevas descargadas
+  ((font_counter++))
+  echo -e "${YELLOW}📊 Progreso: $processed_fonts / $total_fonts${NC}"
 
 done
 
-# Recargar la caché de fuentes
-echo -e "${GREEN}$CHECK_ICON Recargando la caché de fuentes...${NC}"
-fc-cache -fv
+# Resumen final
+echo -e "${YELLOW}📊 Fuentes ya instaladas y omitidas: $skipped_counter${NC}"
+echo -e "${GREEN}✅ Fuentes nuevas instaladas: $font_counter${NC}"
+echo -e "${CYAN}📊 Total de fuentes procesadas: $processed_fonts / $total_fonts${NC}"
+
+# Recargar la caché de fuentes si hubo cambios
+if [[ $font_counter -gt 0 ]]; then
+  echo -e "${GREEN}$CHECK_ICON Recargando la caché de fuentes...${NC}"
+  fc-cache -fv
+fi
 
 echo -e "${CYAN}$CHECK_ICON Instalación de NerdFonts completada.${NC}"
-
