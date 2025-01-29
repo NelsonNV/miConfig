@@ -1,64 +1,82 @@
 #!/bin/bash
 
-# Configuración de alias de comandos 'ls'
+# Ruta por defecto al archivo .zshrc
+ZSHRC="$HOME/.zshrc"
+
+# Verificar si se usa el modo test
+if [[ "$1" == "--test" ]]; then
+  ZSHRC="$HOME/.zshrc.test"
+  echo "🧪 Modo TEST activado: Se usará $ZSHRC en lugar de ~/.zshrc"
+  >"$ZSHRC" # Limpia el archivo para pruebas
+fi
+
+# Mensajes con iconos
+ADDED="✨"
+EXISTS="✅"
+ERROR="❌"
+APPLIED="🚀"
+
+# Definir equivalencias de nombres en español e inglés
+declare -A DIR_NAMES=(
+  ["Desktop"]="Escritorio"
+  ["Downloads"]="Descargas"
+  ["Documents"]="Documentos"
+  ["Pictures"]="Imágenes"
+  ["Videos"]="Videos"
+)
+
+# Alias de comandos generales
 declare -A ALIASES=(
   ["ls"]="lsd"
   ["ll"]="ls -l"
   ["la"]="ls -la"
 )
 
-# Configuración de alias para cambiar directorios
+# Alias para cambiar directorios
 declare -A CDALIASES=(
-  ["cdt"]="Escritorio Desktop"
-  ["cdd"]="Descargas Downloads"
-  ["cdo"]="Documentos Documents"
-  ["cdi"]="Imágenes Pictures"
-  ["cdv"]="Videos Videos"
+  ["cdt"]="Desktop"
+  ["cdd"]="Downloads"
+  ["cdo"]="Documents"
+  ["cdi"]="Pictures"
+  ["cdv"]="Videos"
 )
 
-# Ruta al archivo .zshrc
-ZSHRC="$HOME/.zshrc"
+# Función para verificar si una línea ya existe en el archivo ZSHRC
+exists_in_zshrc() {
+  grep -qF "$1" "$ZSHRC"
+}
 
-# Mensajes con íconos
-ADDED="✨"
-EXISTS="✅"
-ERROR="❌"
-APPLIED="🚀"
+# Función para obtener el directorio correcto (verifica inglés primero, luego español)
+get_dir_path() {
+  local eng="$HOME/$1"
+  local esp="$HOME/${DIR_NAMES[$1]}"
+  [[ -d "$eng" ]] && echo "$eng" && return
+  [[ -d "$esp" ]] && echo "$esp" && return
+  echo "$eng" # Si ninguna existe, usar la versión en inglés por defecto
+}
 
-# Agregar alias de comandos normales
+# Agregar alias generales
 for alias_name in "${!ALIASES[@]}"; do
   alias_command="${ALIASES[$alias_name]}"
-  if grep -q "alias $alias_name=" "$ZSHRC"; then
-    echo -e "$EXISTS El alias '$alias_name' ya existe en $ZSHRC."
-  else
-    echo "alias $alias_name='$alias_command'" >>"$ZSHRC"
-    echo -e "$ADDED Alias '$alias_name' agregado a $ZSHRC."
-  fi
+  exists_in_zshrc "alias $alias_name=" && echo -e "$EXISTS Alias '$alias_name' ya existe." && continue
+  echo "alias $alias_name='$alias_command'" >>"$ZSHRC"
+  echo -e "$ADDED Alias '$alias_name' agregado."
 done
 
-# Agregar alias para cambiar directorios
+# Agregar funciones para cambiar directorios
 for cd_alias in "${!CDALIASES[@]}"; do
-  IFS=' ' read -r -a dirs <<<"${CDALIASES[$cd_alias]}"
-  dir_path=""
-  for dir in "${dirs[@]}"; do
-    if [ -d "$HOME/$dir" ]; then
-      dir_path="$HOME/$dir"
-      break
-    fi
-  done
+  dir_path=$(get_dir_path "${CDALIASES[$cd_alias]}")
+  [[ ! -d "$dir_path" ]] && echo -e "$ERROR No se encontró un directorio válido para '$cd_alias'." && continue
 
-  if [ -n "$dir_path" ]; then
-    if grep -q "alias $cd_alias=" "$ZSHRC"; then
-      echo -e "$EXISTS El alias '$cd_alias' ya existe en $ZSHRC."
-    else
-      echo "alias $cd_alias='cd $dir_path'" >>"$ZSHRC"
-      echo -e "$ADDED Alias '$cd_alias' agregado a $ZSHRC."
-    fi
-  else
-    echo -e "$ERROR No se pudo encontrar el directorio para '$cd_alias'."
-  fi
+  func_definition="
+${cd_alias}() { cd \"$dir_path/\$@\" ; }
+compdef '_files -/' $cd_alias
+"
+  exists_in_zshrc "$cd_alias() {" && echo -e "$EXISTS La función '$cd_alias' ya existe." && continue
+  echo "$func_definition" >>"$ZSHRC"
+  echo -e "$ADDED Función '$cd_alias' agregada."
 done
 
-# Recargar el archivo .zshrc
-source "$ZSHRC"
-echo -e "$APPLIED Configuración aplicada."
+# Recargar configuración solo si no está en modo test
+[[ "$1" != "--test" ]] && source "$ZSHRC" && echo -e "$APPLIED Configuración aplicada."
+[[ "$1" == "--test" ]] && echo "🧪 Test completado. Revisa $ZSHRC para verificar los cambios."
