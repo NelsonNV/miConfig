@@ -48,10 +48,14 @@ get_dir_path() {
 # Agregar alias generales
 add_section_header "# --- Alias del sistema ---"
 declare -A ALIASES=(
-  ["ls"]="lsd"
   ["ll"]="ls -l"
   ["la"]="ls -la"
 )
+
+if command -v lsds >/dev/null 2>&1; then
+  ALIASES['ls']="lsd"
+fi
+
 for alias_name in "${!ALIASES[@]}"; do
   alias_command="${ALIASES[$alias_name]}"
   exists_in_zshrc "alias $alias_name=" && echo -e "$EXISTS Alias '$alias_name' ya existe." && continue
