@@ -25,25 +25,15 @@ declare -A DIR_NAMES=(
   ["Videos"]="Videos"
 )
 
-# Alias de comandos generales
-declare -A ALIASES=(
-  ["ls"]="lsd"
-  ["ll"]="ls -l"
-  ["la"]="ls -la"
-)
-
-# Alias para cambiar directorios
-declare -A CDALIASES=(
-  ["cdt"]="Desktop"
-  ["cdd"]="Downloads"
-  ["cdo"]="Documents"
-  ["cdi"]="Pictures"
-  ["cdv"]="Videos"
-)
-
 # Función para verificar si una línea ya existe en el archivo ZSHRC
 exists_in_zshrc() {
   grep -qF "$1" "$ZSHRC"
+}
+
+# Función para agregar encabezado si no existe
+add_section_header() {
+  local header="$1"
+  exists_in_zshrc "$header" || echo -e "\n$header\n" >>"$ZSHRC"
 }
 
 # Función para obtener el directorio correcto (verifica inglés primero, luego español)
@@ -56,6 +46,12 @@ get_dir_path() {
 }
 
 # Agregar alias generales
+add_section_header "# --- Alias del sistema ---"
+declare -A ALIASES=(
+  ["ls"]="lsd"
+  ["ll"]="ls -l"
+  ["la"]="ls -la"
+)
 for alias_name in "${!ALIASES[@]}"; do
   alias_command="${ALIASES[$alias_name]}"
   exists_in_zshrc "alias $alias_name=" && echo -e "$EXISTS Alias '$alias_name' ya existe." && continue
@@ -63,7 +59,31 @@ for alias_name in "${!ALIASES[@]}"; do
   echo -e "$ADDED Alias '$alias_name' agregado."
 done
 
-# Agregar funciones para cambiar directorios
+# Agregar alias de Git
+add_section_header "# --- Alias de Git ---"
+declare -A GIT_ALIASES=(
+  ["gpl"]="git pull"
+  ["gps"]="git push"
+  ["gsw"]="git switch"
+  ["gbr"]="git branch"
+  ["gts"]="git status"
+)
+for alias_name in "${!GIT_ALIASES[@]}"; do
+  alias_command="${GIT_ALIASES[$alias_name]}"
+  exists_in_zshrc "alias $alias_name=" && echo -e "$EXISTS Alias '$alias_name' ya existe." && continue
+  echo "alias $alias_name='$alias_command'" >>"$ZSHRC"
+  echo -e "$ADDED Alias '$alias_name' agregado."
+done
+
+# Agregar alias para cambiar directorios
+add_section_header "# --- Alias de directorios ---"
+declare -A CDALIASES=(
+  ["cdt"]="Desktop"
+  ["cdd"]="Downloads"
+  ["cdo"]="Documents"
+  ["cdi"]="Pictures"
+  ["cdv"]="Videos"
+)
 for cd_alias in "${!CDALIASES[@]}"; do
   dir_path=$(get_dir_path "${CDALIASES[$cd_alias]}")
   [[ ! -d "$dir_path" ]] && echo -e "$ERROR No se encontró un directorio válido para '$cd_alias'." && continue
