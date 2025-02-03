@@ -71,6 +71,8 @@ declare -A GIT_ALIASES=(
   ["gsw"]="git switch"
   ["gbr"]="git branch"
   ["gts"]="git status"
+  ["glg"]="git log --oneline --decorate --graph"
+  ["gcm"]="git commit"
 )
 for alias_name in "${!GIT_ALIASES[@]}"; do
   alias_command="${GIT_ALIASES[$alias_name]}"
