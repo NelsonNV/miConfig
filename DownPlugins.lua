@@ -10,6 +10,6 @@ local DicionariPlugin = {
 for plugin, url in pairs(DicionariPlugin) do
 	print("Installing " .. plugin)
 	local dirOutPlugins = string.format("~/.zshp/%s", plugin)
-	local cmd = string.format("echo 'git clone %s %s'", url, dirOutPlugins)
+	local cmd = string.format("git clone %s %s", url, dirOutPlugins)
 	os.execute(cmd)
 end
