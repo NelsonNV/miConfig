@@ -1,3 +1,5 @@
+#!/usr/bin/env lua
+
 local DicionariPlugin = {
 	autovirtualenv = "MichaelAquilina/zsh-autoswitch-virtualenv",
 	syntaxcheck = "zsh-users/zsh-syntax-highlighting",
