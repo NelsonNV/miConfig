@@ -20,15 +20,30 @@ local colores = {
 }
 
 local DicionariPlugin = {
-	autovirtualenv = "MichaelAquilina/zsh-autoswitch-virtualenv",
-	syntaxcheck = "zsh-users/zsh-syntax-highlighting",
-	autosuggestions = "zsh-users/zsh-autosuggestions",
-	fzf_tab = "Aloxaf/fzf-tab",
+	autovirtualenv = {
+		url = "MichaelAquilina/zsh-autoswitch-virtualenv",
+		executer = "zsh-autoswitch-virtualenv.plugins.zsh",
+	},
+	syntaxcheck = {
+		url = "zsh-users/zsh-syntax-highlighting",
+		executer = "zsh-syntax-highlighting.zsh",
+	},
+	autosuggestions = {
+		url = "zsh-users/zsh-autosuggestions",
+		executer = "zsh-autosuggestions.zsh",
+	},
+	fzf_tab = {
+		url = "Aloxaf/fzf-tab",
+		executer = "fzf-tab.plugin.zsh",
+	},
 }
 
 print(colores.azul .. "DownPlugins.lua" .. colores.reset)
 
-for plugin, url in pairs(DicionariPlugin) do
+for plugin, item in pairs(DicionariPlugin) do
+	local url = item.url
+	ic(plugin)
+	ic(url)
 	print(colores.verde .. "[+]" .. "Installing " .. plugin .. colores.reset)
 	local dirOutPlugins = string.format("~/.zshp/%s", plugin)
 	local cmd = string.format("git clone https//:github.com/%s %s", url, dirOutPlugins)
