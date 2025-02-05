@@ -52,3 +52,17 @@ for plugin, item in pairs(DicionariPlugin) do
 		os.execute(cmd)
 	end
 end
+
+-- agregando al zsh source plugins
+
+print(colores.azul .. "[+]" .. "Adding to zsh" .. colores.reset)
+local zshpath = "~/.zshrc"
+
+for plugin, item in pairs(DicionariPlugin) do
+	local dirOutPlugins = string.format("~/.zshp/%s/%s", plugin, item.executer)
+	local cmd = string.format("echo 'source %s' >> %s", dirOutPlugins, zshpath)
+	ic(cmd)
+	if not debug then
+		os.execute(cmd)
+	end
+end
