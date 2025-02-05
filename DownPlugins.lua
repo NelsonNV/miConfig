@@ -1,8 +1,14 @@
 #!/usr/bin/env lua
 
-local ic = require("icecream")
+local ic_log = require("icecream")
 
 local debug = false
+
+local function ic(...)
+	if not debug then
+		ic_log(...)
+	end
+end
 
 for _, v in pairs(arg) do
 	if v == "--debug" then
