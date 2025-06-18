@@ -1,6 +1,7 @@
 #!/bin/python3
 import os
 import subprocess
+import re
 from PIL import Image
 
 MAX_WIDTH = 60
@@ -14,7 +15,6 @@ def calcular_tamaño_proporcional(w, h):
     return int(w * escala), int(h * escala)
 
 def obtener_tamaño_de_nombre(nombre):
-    import re
     match = re.search(r"_(\d+)x(\d+)", nombre)
     if match:
         return int(match.group(1)), int(match.group(2))
@@ -30,6 +30,16 @@ def mostrar_con_chafa(ruta, w, h):
     print(f"🔹 Mostrando: {os.path.basename(ruta)}  Tamaño: {w}x{h}\n")
     comando = f'chafa "{ruta}" --format symbols --symbols vhalf --stretch --size {w}x{h}'
     subprocess.call(comando, shell=True)
+
+def ajustar_valor(actual, operacion, limite_min, limite_max):
+    if operacion == "max":
+        return limite_max
+    if operacion == "min":
+        return limite_min
+    try:
+        return max(limite_min, min(limite_max, actual + int(operacion)))
+    except ValueError:
+        return actual
 
 def modo_interactivo():
     for nombre in sorted(os.listdir(FOLDER)):
@@ -55,11 +65,11 @@ def modo_interactivo():
                 print("📐 Original:", f"{w}x{h}")
                 print("💡 Propuesta:", f"{sugerido_w}x{sugerido_h}")
                 print("\nComandos rápidos:")
-                print("  a / Enter → aceptar")
-                print("  s         → saltar")
-                print("  w+ / w-   → ancho + / -")
-                print("  h+ / h-   → alto + / -")
-                print("  q         → salir")
+                print("  a / Enter   → aceptar")
+                print("  s           → saltar")
+                print("  w+5 / w-3   → ancho +5 / -3")
+                print("  h+2 / h=max → alto +2 / al máximo")
+                print("  q           → salir")
 
                 opt = input("👉 Acción: ").strip().lower()
                 if opt in ("", "a"):
@@ -71,15 +81,22 @@ def modo_interactivo():
                 elif opt == "q":
                     print("👋 Cancelado por el usuario.")
                     return
-                elif opt == "w+":
-                    sugerido_w += 1
-                elif opt == "w-":
-                    sugerido_w = max(MIN_WIDTH, sugerido_w - 1)
-                elif opt == "h+":
-                    sugerido_h += 1
-                elif opt == "h-":
-                    sugerido_h = max(MIN_HEIGHT, sugerido_h - 1)
                 else:
+                    match = re.match(r"([wh])([+-]?)(\d+|min|max)?", opt)
+                    if match:
+                        dim, signo, valor = match.groups()
+                        if signo == "+" or signo == "-":
+                            delta = int(valor) if valor else 1
+                            delta = delta if signo == "+" else -delta
+                        else:
+                            delta = valor  # Puede ser "min" o "max"
+
+                        if dim == "w":
+                            sugerido_w = ajustar_valor(sugerido_w, delta, MIN_WIDTH, MAX_WIDTH)
+                        elif dim == "h":
+                            sugerido_h = ajustar_valor(sugerido_h, delta, MIN_HEIGHT, MAX_HEIGHT)
+                        continue
+
                     print("❓ Comando no reconocido.")
 
             if sugerido_w and sugerido_h:
